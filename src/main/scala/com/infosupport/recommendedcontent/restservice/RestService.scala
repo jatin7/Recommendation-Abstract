@@ -2,19 +2,18 @@ package com.infosupport.recommendedcontent.restservice
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.{HttpEntity, StatusCodes, StatusCode, HttpResponse}
+import akka.http.scaladsl.model.{HttpEntity, HttpResponse, StatusCode, StatusCodes}
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.server.{Route, ExceptionHandler}
+import akka.http.scaladsl.server.{ExceptionHandler, Route}
 import akka.http.scaladsl.settings.RoutingSettings
 import akka.stream.{ActorMaterializer, Materializer}
 import akka.util.Timeout
-import com.infosupport.recommendedcontent.core.RecommenderSystem
-import org.apache.spark.{SparkContext, SparkConf}
-
+import com.infosupport.recommendedcontent.core.{KMeanUser, RecommenderSystem}
+import org.apache.spark.{SparkConf, SparkContext}
 import akka.pattern.ask
-import scala.concurrent.{Future, ExecutionContext}
-import scala.util.{Success, Failure}
 
+import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success}
 import scala.concurrent.duration._
 
 /**
@@ -61,6 +60,27 @@ class RestService(interface: String, port: Int = 3001)(implicit val system: Acto
 
           complete {
             (StatusCodes.OK -> GenericResponse("Training started"))
+          }
+        }
+      }
+
+//      path("kmean") {
+//        post {
+//          system.actorOf(KMeanUser.props(sparkContext)) ! KMeanUser.Train()
+//
+//          complete {
+//            (StatusCodes.OK -> GenericResponse("Training started"))
+//          }
+//        }
+//      }
+
+      path("kmean") {
+        get {
+          parameters('type.as[String], 'cluster.as[Int]) { (typeTrain, cluster) =>
+            complete {
+              (system.actorOf(KMeanUser.props(sparkContext)) ? KMeanUser.Train(typeTrain, cluster))
+              (StatusCodes.OK -> GenericResponse("Training started"))
+            }
           }
         }
       }

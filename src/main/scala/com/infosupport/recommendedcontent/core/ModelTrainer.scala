@@ -48,7 +48,6 @@ class ModelTrainer(sc: SparkContext) extends Actor with ActorLogging {
   private def trainModel() = {
     val table = context.system.settings.config.getString("cassandra.table")
     val keyspace = context.system.settings.config.getString("cassandra.keyspace")
-
     // Retrieve the ratings given by users from the database.
     // Map them to the rating structure needed by the Alternate Least Squares algorithm.
 val ratings = sc.cassandraTable(keyspace, table).map(record => Rating(record.get[Int]("user_id"),
