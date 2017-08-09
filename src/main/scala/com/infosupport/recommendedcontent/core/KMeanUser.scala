@@ -3,7 +3,7 @@ import akka.actor.{Actor, ActorLogging, Props}
 import com.datastax.spark.connector._
 import org.apache.spark.SparkContext
 import org.apache.spark.ml.clustering.KMeans
-import org.apache.spark.ml.feature.{StringIndexer, VectorAssembler}
+import org.apache.spark.ml.feature.{IndexToString, StringIndexer, Tokenizer, VectorAssembler}
 import org.apache.spark.sql.cassandra._
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.sql.SQLContext
@@ -17,6 +17,7 @@ import org.apache.spark.sql.functions._
   */
 object KMeanUser {
   case class Train(typeTrain: String, cluster: Int)
+  case class UserCluster(cluster:Int, userId:String, serviceName:String)
   def props(sc: SparkContext) = Props(new KMeanUser(sc))
 }
 
@@ -26,7 +27,6 @@ class KMeanUser(sc: SparkContext) extends Actor with ActorLogging {
 
   def receive = {
     case Train(typeTrain: String, cluster: Int) => trainModel(typeTrain, cluster)
-
   }
 
   def splitByString= udf(
@@ -58,23 +58,34 @@ class KMeanUser(sc: SparkContext) extends Actor with ActorLogging {
 
     import spark.implicits._
 
+
     var userIdDF = spark.emptyDataFrame;
     if(typeTrain == "service"){
-      userIdDF = transactionDataDF.select("user_id", "service_name", "service_id").withColumn("user_id", $"user_id".cast(IntegerType))
+      userIdDF = transactionDataDF.select("user_id", "service_name", "service_id")//.withColumn("user_id", $"user_id".cast(IntegerType))
         .withColumn ("service_name",  when($"service_name".isNull,  splitByString($"service_id")  ).otherwise($"service_name") )
-    }else{
-      userIdDF = transactionDataDF.select("user_id", "service_name", "service_id").withColumn("user_id", $"user_id".cast(IntegerType))
-        .withColumn ("service_name",  when($"service_name".isNull,  splitByString($"service_id")  ).otherwise($"service_name") )
+    }else if(typeTrain == "amount"){
+      userIdDF = transactionDataDF.select("user_id", "amount")//.withColumn("user_id", $"user_id".cast(IntegerType))
     }
+
+
+    val converterServiceName = new IndexToString()
+      .setInputCol("service_name")
+      .setOutputCol("origin_service_name")
+
+    val indexerUserId = new StringIndexer()
+      .setInputCol("user_id")
+      .setOutputCol("user_id_index")
+      .setHandleInvalid("keep")
+    val indexedUserId = indexerUserId.fit(userIdDF).transform(userIdDF)
 
     val indexerServiceName = new StringIndexer()
       .setInputCol("service_name")
       .setOutputCol("service_name_index")
       .setHandleInvalid("keep")
-    val indexedServiceName = indexerServiceName.fit(userIdDF).transform(userIdDF)
+    val indexedServiceName = indexerServiceName.fit(indexedUserId).transform(indexedUserId)
 
     val assembler = new VectorAssembler()
-      .setInputCols(Array("user_id", "service_name_index"))
+      .setInputCols(Array("user_id_index", "service_name_index"))
       .setOutputCol("features")
 
     val training = assembler.transform(indexedServiceName)
@@ -85,38 +96,15 @@ class KMeanUser(sc: SparkContext) extends Actor with ActorLogging {
     // Evaluate clustering by computing Within Set Sum of Squared Errors.
     val WSSSE = model.computeCost(training)
 
-
-
-
-
-    // Shows the result.
-    /*println("Cluster Centers: ")
-    model.clusterCenters.foreach(println)
-    val vectors = model.clusterCenters
-    println(vectors.mkString("\n"))*/
-
-
-    // Trains a LDA model.
-    /*val lda = new LDA().setK(10).setMaxIter(10)
-    val model = lda.fit(training)
-
-    val ll = model.logLikelihood(training)
-    val lp = model.logPerplexity(training)
-    println(s"The lower bound on the log likelihood of the entire corpus: $ll")
-    println(s"The upper bound on perplexity: $lp")
-
-    // Describe topics.
-    val topics = model.describeTopics(3)
-    println("The topics described by their top-weighted terms:")
-    topics.show(false)*/
-
-
     val transformed = model.transform(training)
     transformed
       .select("user_id", "service_name_index" , "prediction")
       .show(false)
 
     println(s"Within Set Sum of Squared Errors = $WSSSE")
+
+    val rowRDD = transformed.map(p => UserCluster(p.getAs("prediction"), p.getAs("user_id"), p.getAs("service_name"))).rdd
+    rowRDD.saveToCassandra("events", "userid_by_cluster")
   }
 }
 
