@@ -8,7 +8,7 @@ import akka.http.scaladsl.server.{ExceptionHandler, Route}
 import akka.http.scaladsl.settings.RoutingSettings
 import akka.stream.{ActorMaterializer, Materializer}
 import akka.util.Timeout
-import com.infosupport.recommendedcontent.core.{KMeanAmount, KMeanCategory, KMeanUser, RecommenderSystem}
+import com.infosupport.recommendedcontent.core.{KMeanAmount, KMeanCategory, KMeanService, RecommenderSystem}
 import org.apache.spark.{SparkConf, SparkContext}
 import akka.pattern.ask
 
@@ -80,11 +80,11 @@ class RestService(interface: String, port: Int = 3001)(implicit val system: Acto
 //        }
 //      }
 
-      path("kmean") {
+      path("kmeanservice") {
         get {
-          parameters('type.as[String], 'cluster.as[Int]) { (typeTrain, cluster) =>
+          parameters('cluster.as[Int], 'iteration.as[Int]) { (cluster, iteration) =>
             complete {
-              (system.actorOf(KMeanUser.props(sparkContext)) ? KMeanUser.Train(typeTrain, cluster))
+              (system.actorOf(KMeanService.props(sparkContext)) ? KMeanService.Train(cluster, iteration))
               (StatusCodes.OK -> GenericResponse("Training started"))
             }
           }
