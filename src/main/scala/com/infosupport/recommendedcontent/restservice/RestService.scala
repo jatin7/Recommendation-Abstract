@@ -8,7 +8,7 @@ import akka.http.scaladsl.server.{ExceptionHandler, Route}
 import akka.http.scaladsl.settings.RoutingSettings
 import akka.stream.{ActorMaterializer, Materializer}
 import akka.util.Timeout
-import com.infosupport.recommendedcontent.core.{KMeanAmount, KMeanUser, RecommenderSystem}
+import com.infosupport.recommendedcontent.core.{KMeanAmount, KMeanCategory, KMeanUser, RecommenderSystem}
 import org.apache.spark.{SparkConf, SparkContext}
 import akka.pattern.ask
 
@@ -29,6 +29,12 @@ class RestService(interface: String, port: Int = 3001)(implicit val system: Acto
   config.setMaster(system.settings.config.getString("spark.master"))
   config.setAppName("recommended-content-service")
   config.set("spark.cassandra.connection.host", system.settings.config.getString("cassandra.server"))
+
+  config.set("spark.driver.memory" , system.settings.config.getString("spark.driver.memory"))
+  //config.set("spark.executor.memory", system.settings.config.getString("spark.executor.memory"))
+  config.set("spark.cassandra.connection.host", system.settings.config.getString("cassandra.server"))
+  config.set("spark.cassandra.auth.username", system.settings.config.getString("cassandra.username"))
+  config.set("spark.cassandra.auth.password", system.settings.config.getString("cassandra.password"))
 
   val sparkContext = new SparkContext(config)
 
@@ -90,6 +96,17 @@ class RestService(interface: String, port: Int = 3001)(implicit val system: Acto
           parameters('cluster.as[Int]) { (cluster) =>
             complete {
               (system.actorOf(KMeanAmount.props(sparkContext)) ? KMeanAmount.Train(cluster))
+              (StatusCodes.OK -> GenericResponse("Train started"))
+            }
+          }
+        }
+      }
+
+      path("kmeancategory") {
+        get {
+          parameters('cluster.as[Int], 'iteration.as[Int]) { (cluster, iteration) =>
+            complete {
+              (system.actorOf(KMeanCategory.props(sparkContext)) ? KMeanCategory.Train(cluster, iteration))
               (StatusCodes.OK -> GenericResponse("Train started"))
             }
           }
