@@ -16,7 +16,7 @@ import com.datastax.spark.connector._
   * Created by giangtrinh on 8/8/17.
   */
 object KMeanAmount {
-  case class Train(cluster: Int)
+  case class Train(cluster: Int, iteration: Int)
   case class UserCluster(cluster:Int, userId:String, amount: Double, transformed_amount: Double)
   def props(sc: SparkContext) = Props(new KMeanAmount(sc))
 }
@@ -26,7 +26,7 @@ class KMeanAmount(sc: SparkContext) extends Actor with ActorLogging {
   import KMeanAmount._
 
   def receive = {
-    case Train(cluster: Int) => trainModel(cluster)
+    case Train(cluster: Int, iteration: Int) => trainModel(cluster, iteration)
   }
 
   def splitAmountRange = udf(
@@ -52,7 +52,7 @@ class KMeanAmount(sc: SparkContext) extends Actor with ActorLogging {
   /**
     * Trains the new recommender system model
     */
-  private def trainModel(cluster: Int) = {
+  private def trainModel(cluster: Int, iteration: Int) = {
     val spark = SparkSession
       .builder()
       .getOrCreate()
@@ -72,7 +72,7 @@ class KMeanAmount(sc: SparkContext) extends Actor with ActorLogging {
 
     val training = assembler.transform(userIdDF)
 
-   val kmeans = new KMeans().setK(cluster).setMaxIter(50).setSeed(1L)
+   val kmeans = new KMeans().setK(cluster).setMaxIter(iteration).setSeed(1L)
     val model = kmeans.fit(training)
     //val model = KMeans.train(rddVector, 4 ,10)
     // Evaluate clustering by computing Within Set Sum of Squared Errors.

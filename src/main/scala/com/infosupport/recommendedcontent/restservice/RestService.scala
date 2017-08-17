@@ -93,9 +93,9 @@ class RestService(interface: String, port: Int = 3001)(implicit val system: Acto
 
       path("kmeanamount") {
         get {
-          parameters('cluster.as[Int]) { (cluster) =>
+          parameters('cluster.as[Int], 'iteration.as[Int]) { (cluster, iteration) =>
             complete {
-              (system.actorOf(KMeanAmount.props(sparkContext)) ? KMeanAmount.Train(cluster))
+              (system.actorOf(KMeanAmount.props(sparkContext)) ? KMeanAmount.Train(cluster, iteration))
               (StatusCodes.OK -> GenericResponse("Train started"))
             }
           }
