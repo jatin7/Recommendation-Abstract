@@ -38,7 +38,7 @@ class KMeanCategory(sc: SparkContext) extends Actor with ActorLogging {
     import spark.implicits._
     val transactionDataDF = spark.read
       .format("org.apache.spark.sql.cassandra")
-      .options(Map( "table" -> "transaction_data", "keyspace" -> "events"))
+      .options(Map( "table" -> context.system.settings.config.getString("cassandra.database"), "keyspace" -> context.system.settings.config.getString("cassandra.keyspace")))
       .load().cache()
 
     val dataTrainingDF = transactionDataDF.select("user_id", "category_id")

@@ -60,7 +60,7 @@ class KMeanAmount(sc: SparkContext) extends Actor with ActorLogging {
     import spark.implicits._
     val transactionDataDF = spark.read
       .format("org.apache.spark.sql.cassandra")
-      .options(Map( "table" -> "transaction_data", "keyspace" -> "events"))
+      .options(Map( "table" -> context.system.settings.config.getString("cassandra.database"), "keyspace" -> context.system.settings.config.getString("cassandra.keyspace")))
       .load()//.cache()
 
     val userIdDF = transactionDataDF.select("user_id", "original_amount").where("original_amount IS NOT NULL").withColumn("user_id", $"user_id".cast(IntegerType))

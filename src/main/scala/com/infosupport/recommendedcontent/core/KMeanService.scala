@@ -53,7 +53,7 @@ class KMeanService(sc: SparkContext) extends Actor with ActorLogging {
 
     val transactionDataDF = spark.read
       .format("org.apache.spark.sql.cassandra")
-      .options(Map( "table" -> "transaction_data", "keyspace" -> "events"))
+      .options(Map( "table" -> context.system.settings.config.getString("cassandra.database"), "keyspace" -> context.system.settings.config.getString("cassandra.keyspace")))
       .load()
 
     import spark.implicits._
