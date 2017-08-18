@@ -1,4 +1,4 @@
-package com.infosupport.recommendedcontent.restservice
+package vn.com.momo.restservice
 
 /**
   * Generic service response

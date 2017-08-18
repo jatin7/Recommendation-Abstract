@@ -1,4 +1,4 @@
-package com.infosupport.recommendedcontent.restservice
+package vn.com.momo.restservice
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
@@ -8,7 +8,7 @@ import akka.http.scaladsl.server.{ExceptionHandler, Route}
 import akka.http.scaladsl.settings.RoutingSettings
 import akka.stream.{ActorMaterializer, Materializer}
 import akka.util.Timeout
-import com.infosupport.recommendedcontent.core.{KMeanAmount, KMeanCategory, KMeanService, RecommenderSystem}
+import vn.com.momo.core.{KMeanAmount, KMeanCategory, KMeanService, RecommenderSystem}
 import org.apache.spark.{SparkConf, SparkContext}
 import akka.pattern.ask
 

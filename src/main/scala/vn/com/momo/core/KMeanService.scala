@@ -1,4 +1,4 @@
-package com.infosupport.recommendedcontent.core
+package vn.com.momo.core
 import akka.actor.{Actor, ActorLogging, Props}
 import com.datastax.spark.connector._
 import org.apache.spark.SparkContext

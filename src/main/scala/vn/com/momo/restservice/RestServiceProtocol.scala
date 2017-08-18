@@ -1,7 +1,7 @@
-package com.infosupport.recommendedcontent.restservice
+package vn.com.momo.restservice
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
-import com.infosupport.recommendedcontent.core.RecommenderSystem
+import vn.com.momo.core.RecommenderSystem
 import spray.json.DefaultJsonProtocol
 
 /**

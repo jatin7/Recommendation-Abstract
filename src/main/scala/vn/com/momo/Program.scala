@@ -1,8 +1,8 @@
-package com.infosupport.recommendedcontent
+package vn.com.momo
 
 import akka.actor.ActorSystem
 import akka.util.Timeout
-import com.infosupport.recommendedcontent.restservice.RestService
+import vn.com.momo.restservice.RestService
 import org.apache.spark.{SparkConf, SparkContext}
 
 import scala.concurrent.duration._
